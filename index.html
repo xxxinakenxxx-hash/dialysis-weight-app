@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>透析体重メモ</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">自分用の記録</p>
+          <h1>透析体重メモ</h1>
+        </div>
+        <button id="exportCsv" class="icon-button" type="button" title="CSVを書き出す" aria-label="CSVを書き出す">
+          CSV
+        </button>
+      </header>
+
+      <section class="summary" aria-label="最新の記録">
+        <div>
+          <span>今回の増加量</span>
+          <strong id="latestGain">-- kg</strong>
+        </div>
+        <div>
+          <span>今回の除水量</span>
+          <strong id="latestRemoval">-- kg</strong>
+        </div>
+        <div>
+          <span>上限オーバー</span>
+          <strong id="latestOverLimit">-- kg</strong>
+        </div>
+      </section>
+
+      <section id="statusMessage" class="status" aria-live="polite">
+        記録すると、次回からドライウェイトを自動で入れます。
+      </section>
+
+      <section class="notice" aria-label="注意">
+        ドライウェイトは、病院や主治医から指示された値を入力してください。このアプリは自分で記録を見返すためのもので、治療判断を行うものではありません。
+      </section>
+
+      <section class="plan panel" aria-label="次回までの目安">
+        <div class="section-head">
+          <h2>次回までの目安</h2>
+          <label class="inline-field">
+            <span>次回透析日</span>
+            <input id="nextDate" type="date" />
+          </label>
+        </div>
+        <div class="plan-grid">
+          <div>
+            <span>次回の上限体重</span>
+            <strong id="planLimit">-- kg</strong>
+          </div>
+          <div>
+            <span>増やせる残り</span>
+            <strong id="planAllowance">-- kg</strong>
+          </div>
+          <div>
+            <span>1日あたり</span>
+            <strong id="planPerDay">-- kg</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="layout">
+        <form id="recordForm" class="panel" autocomplete="off">
+          <h2>今日の記録</h2>
+
+          <label>
+            <span>透析日</span>
+            <input id="date" name="date" type="date" required />
+          </label>
+
+          <label>
+            <span>ドライウェイト kg</span>
+            <input id="dryWeight" name="dryWeight" type="number" inputmode="decimal" step="0.1" min="0" required />
+          </label>
+
+          <label>
+            <span>除水上限 kg</span>
+            <input id="maxRemoval" name="maxRemoval" type="number" inputmode="decimal" step="0.1" min="0" value="3.3" required />
+          </label>
+
+          <div class="grid-2">
+            <label>
+              <span>透析前の体重 kg</span>
+              <input id="preWeight" name="preWeight" type="number" inputmode="decimal" step="0.1" min="0" required />
+            </label>
+            <label>
+              <span>透析後の体重 kg</span>
+              <input id="postWeight" name="postWeight" type="number" inputmode="decimal" step="0.1" min="0" required />
+            </label>
+          </div>
+
+          <label>
+            <span>メモ</span>
+            <textarea id="note" name="note" rows="3" placeholder="例: 外食、飲水量が多め、体調など"></textarea>
+          </label>
+
+          <div class="calculation" aria-live="polite">
+            <div>
+              <span>前回後からの増加</span>
+              <strong id="previewGain">-- kg</strong>
+            </div>
+            <div>
+              <span>上限オーバー</span>
+              <strong id="previewOverLimit">-- kg</strong>
+            </div>
+          </div>
+
+          <button class="primary" type="submit">保存</button>
+        </form>
+
+        <section class="panel records">
+          <div class="section-head">
+            <h2>これまでの記録</h2>
+            <button id="clearAll" class="secondary" type="button">全削除</button>
+          </div>
+          <div id="emptyState" class="empty">まだ記録がありません。</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>DW</th>
+                  <th>前</th>
+                  <th>後</th>
+                  <th>増加</th>
+                  <th>上限超過</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+          </div>
+          <div class="chart-block" aria-label="体重グラフ">
+            <h3>体重グラフ</h3>
+            <div id="chart" class="chart"></div>
+            <div class="legend">
+              <span><i class="legend-pre"></i>透析前</span>
+              <span><i class="legend-limit"></i>上限体重</span>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
