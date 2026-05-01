@@ -3,10 +3,6 @@ const maxRemovalKey = "dialysisMaxRemoval";
 const nextDateKey = "dialysisNextDate";
 const gainCheckKg = 3.0;
 
-const waterLogsKey = "dialysisWaterLogs";
-const mealLogsKey = "dialysisMealLogs";
-const waterGoalKey = "dialysisWaterGoal";
-
 const form = document.querySelector("#recordForm");
 const dateInput = document.querySelector("#date");
 const dryWeightInput = document.querySelector("#dryWeight");
@@ -30,27 +26,11 @@ const clearAllButton = document.querySelector("#clearAll");
 const exportCsvButton = document.querySelector("#exportCsv");
 const statusMessage = document.querySelector("#statusMessage");
 
-const waterGoalInput = document.querySelector("#waterGoal");
-const waterForm = document.querySelector("#waterForm");
-const waterAmountInput = document.querySelector("#waterAmount");
-const waterNoteInput = document.querySelector("#waterNote");
-const mealForm = document.querySelector("#mealForm");
-const mealSaltInput = document.querySelector("#mealSalt");
-const mealWaterFoodInput = document.querySelector("#mealWaterFood");
-const mealNoteInput = document.querySelector("#mealNote");
-const todayWaterTotal = document.querySelector("#todayWaterTotal");
-const todayWaterRemaining = document.querySelector("#todayWaterRemaining");
-const todayMealCount = document.querySelector("#todayMealCount");
-const actionSteps = document.querySelector("#actionSteps");
-
 let records = loadRecords();
-let waterLogs = loadList(waterLogsKey);
-let mealLogs = loadList(mealLogsKey);
 
 dateInput.value = today();
 maxRemovalInput.value = localStorage.getItem(maxRemovalKey) || "3.3";
 nextDateInput.value = localStorage.getItem(nextDateKey) || "";
-waterGoalInput.value = localStorage.getItem(waterGoalKey) || "1000";
 fillLastDryWeight();
 render();
 updatePreview();
@@ -59,40 +39,6 @@ form.addEventListener("input", updatePreview);
 nextDateInput.addEventListener("input", () => {
   localStorage.setItem(nextDateKey, nextDateInput.value);
   renderPlan();
-  renderHydrationSummary();
-});
-
-waterGoalInput.addEventListener("input", () => {
-  const goal = Math.max(100, toNumber(waterGoalInput.value) || 1000);
-  localStorage.setItem(waterGoalKey, String(roundOne(goal)));
-  renderHydrationSummary();
-});
-
-waterForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const amount = toNumber(waterAmountInput.value);
-  if (!Number.isFinite(amount) || amount <= 0) return;
-  waterLogs.unshift({ id: createId(), date: today(), amountMl: Math.round(amount), note: waterNoteInput.value.trim() });
-  localStorage.setItem(waterLogsKey, JSON.stringify(waterLogs));
-  waterForm.reset();
-  renderHydrationSummary();
-});
-
-document.querySelectorAll("[data-water-quick]").forEach((button) => {
-  button.addEventListener("click", () => {
-    waterAmountInput.value = button.dataset.waterQuick;
-    waterForm.requestSubmit();
-  });
-});
-
-mealForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  mealLogs.unshift({ id: createId(), date: today(), salt: mealSaltInput.value, waterFood: mealWaterFoodInput.value, note: mealNoteInput.value.trim() });
-  localStorage.setItem(mealLogsKey, JSON.stringify(mealLogs));
-  mealForm.reset();
-  mealSaltInput.value = "普通";
-  mealWaterFoodInput.value = "中";
-  renderHydrationSummary();
 });
 
 form.addEventListener("submit", (event) => {
@@ -118,7 +64,47 @@ form.addEventListener("submit", (event) => {
   saveRecords();
   form.reset();
   dateInput.value = today();
-@@ -108,50 +162,51 @@ exportCsvButton.addEventListener("click", () => {
+  maxRemovalInput.value = localStorage.getItem(maxRemovalKey) || "3.3";
+  fillLastDryWeight();
+  render();
+  updatePreview();
+});
+
+recordsBody.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-delete-id]");
+  if (!button) return;
+
+  records = records.filter((record) => record.id !== button.dataset.deleteId);
+  saveRecords();
+  render();
+  fillLastDryWeight();
+});
+
+clearAllButton.addEventListener("click", () => {
+  if (!records.length) return;
+  if (!confirm("すべての記録を削除しますか？")) return;
+
+  records = [];
+  saveRecords();
+  render();
+  fillLastDryWeight();
+  updatePreview();
+});
+
+exportCsvButton.addEventListener("click", () => {
+  if (!records.length) {
+    alert("書き出す記録がありません。");
+    return;
+  }
+
+  const header = ["日付", "ドライウェイトkg", "除水上限kg", "透析前kg", "透析後kg", "体重増加量kg", "上限オーバーkg", "メモ"];
+  const rows = records.map((record) => [
+    record.date,
+    record.dryWeight,
+    getMaxRemoval(record),
+    record.preWeight,
+    record.postWeight,
+    formatOptionalNumber(calcGain(record)),
     calcOverLimit(record),
     record.note,
   ]);
@@ -144,7 +130,6 @@ function render() {
   updateStatus(latest);
   renderChart();
   renderPlan();
-  renderHydrationSummary();
 }
 
 function renderRow(record) {
@@ -170,7 +155,18 @@ function updatePreview() {
     postWeight: toNumber(postWeightInput.value),
   };
 
-@@ -170,50 +225,107 @@ function updateStatus(latest) {
+  const previousPostWeight = getPreviousPostWeightForNewRecord();
+  previewGain.textContent = Number.isFinite(record.preWeight) && previousPostWeight !== null
+    ? formatKg(record.preWeight - previousPostWeight)
+    : "-- kg";
+  previewOverLimit.textContent = Number.isFinite(record.preWeight) && Number.isFinite(record.dryWeight) && Number.isFinite(record.maxRemoval)
+    ? formatKg(calcOverLimit(record))
+    : "-- kg";
+}
+
+function updateStatus(latest) {
+  statusMessage.classList.remove("is-check");
+
   if (!latest) {
     statusMessage.textContent = "記録すると、次回からドライウェイトを自動で入れます。";
     return;
@@ -194,63 +190,6 @@ function updatePreview() {
 function fillLastDryWeight() {
   if (dryWeightInput.value || !records.length) return;
   dryWeightInput.value = records[0].dryWeight.toFixed(1);
-}
-
-
-function renderHydrationSummary() {
-  const todayValue = today();
-  const goal = Math.max(100, toNumber(waterGoalInput.value) || 1000);
-  const total = waterLogs.filter((log) => log.date === todayValue).reduce((sum, log) => sum + (toNumber(log.amountMl) || 0), 0);
-  const meals = mealLogs.filter((log) => log.date === todayValue).length;
-  const remaining = Math.max(0, Math.round(goal - total));
-  const hasHighSaltMeal = mealLogs.some((log) => log.date === todayValue && log.salt === "多め");
-
-  todayWaterTotal.textContent = `${Math.round(total)} mL`;
-  todayWaterRemaining.textContent = `${remaining} mL`;
-  todayMealCount.textContent = `${meals} 件`;
-
-  renderActionSteps(remaining, hasHighSaltMeal);
-}
-
-function renderActionSteps(remaining, hasHighSaltMeal) {
-  if (!actionSteps) return;
-
-  let steps = [
-    "+100mL か +200mL を押して、飲んだ分を記録する",
-    `残り ${remaining}mL を確認する`,
-    "食事したら食事メモを保存する",
-  ];
-
-  if (remaining === 0) {
-    steps = [
-      "今日は飲水目標に到達しています",
-      "のどが渇くときは一口（50mL程度）ずつにする",
-      "食事メモだけ続けて記録する",
-    ];
-  } else if (remaining <= 200) {
-    steps = [
-      "残りが少ないため、次は 50〜100mL だけにする",
-      `飲んだら必ず記録して、残り ${remaining}mL を超えないようにする`,
-      "食事メモを保存して今日の傾向を残す",
-    ];
-  } else if (hasHighSaltMeal) {
-    steps = [
-      "塩分が多めの食事があるため、次の飲水は少なめにする",
-      `残り ${remaining}mL の範囲で、こまめに分けて飲む`,
-      "次の食事は塩分を控えめにする",
-    ];
-  }
-
-  actionSteps.innerHTML = steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
-}
-
-function loadList(key) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 function loadRecords() {
@@ -277,4 +216,166 @@ function calcGain(record) {
 
 function calcRemoval(record) {
   return roundOne(record.preWeight - record.postWeight);
+}
+
+function calcOverLimit(record) {
+  return Math.max(0, roundOne(record.preWeight - (record.dryWeight + getMaxRemoval(record))));
+}
+
+function getMaxRemoval(record) {
+  return Number.isFinite(record.maxRemoval) ? record.maxRemoval : toNumber(localStorage.getItem(maxRemovalKey) || "3.3");
+}
+
+function renderPlan() {
+  const latest = records[0];
+  if (!latest) {
+    planLimit.textContent = "-- kg";
+    planAllowance.textContent = "-- kg";
+    planPerDay.textContent = "-- kg";
+    return;
+  }
+
+  const limitWeight = calcLimitWeight(latest);
+  const allowance = roundOne(limitWeight - latest.postWeight);
+  planLimit.textContent = formatKg(limitWeight);
+  planAllowance.textContent = allowance >= 0 ? formatKg(allowance) : `${formatKg(Math.abs(allowance))} 超過`;
+
+  const days = daysUntil(nextDateInput.value);
+  if (!days || allowance < 0) {
+    planPerDay.textContent = "-- kg";
+    return;
+  }
+
+  planPerDay.textContent = formatKg(allowance / days);
+}
+
+function daysUntil(value) {
+  if (!value) return null;
+  const start = new Date(`${today()}T00:00:00`);
+  const end = new Date(`${value}T00:00:00`);
+  const diff = Math.ceil((end - start) / 86400000);
+  return diff > 0 ? diff : null;
+}
+
+function renderChart() {
+  if (!records.length) {
+    chart.innerHTML = '<div class="chart-empty">記録を保存するとグラフが表示されます。</div>';
+    return;
+  }
+
+  const ordered = [...records].sort((a, b) => a.date.localeCompare(b.date));
+  const width = 760;
+  const height = 260;
+  const padding = { top: 24, right: 24, bottom: 42, left: 52 };
+  const values = ordered.flatMap((record) => [record.preWeight, calcLimitWeight(record)]);
+  const min = Math.floor(Math.min(...values) - 1);
+  const max = Math.ceil(Math.max(...values) + 1);
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const xStep = ordered.length > 1 ? plotWidth / (ordered.length - 1) : 0;
+
+  const x = (index) => padding.left + (ordered.length > 1 ? index * xStep : plotWidth / 2);
+  const y = (value) => padding.top + ((max - value) / (max - min)) * plotHeight;
+  const points = (getter) => ordered.map((record, index) => `${x(index)},${y(getter(record))}`).join(" ");
+  const yTicks = Array.from({ length: 5 }, (_, index) => min + ((max - min) / 4) * index);
+
+  chart.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="透析前体重と上限体重のグラフ">
+      ${yTicks
+        .map((tick) => {
+          const tickY = y(tick);
+          return `
+            <line x1="${padding.left}" y1="${tickY}" x2="${width - padding.right}" y2="${tickY}" stroke="#e6eeee" />
+            <text x="${padding.left - 10}" y="${tickY + 4}" text-anchor="end" font-size="11" fill="#64707d">${roundOne(tick).toFixed(1)}</text>
+          `;
+        })
+        .join("")}
+      <polyline points="${points(calcLimitWeight)}" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      <polyline points="${points((record) => record.preWeight)}" fill="none" stroke="#0f766e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      ${ordered
+        .map((record, index) => {
+          const dotX = x(index);
+          const preY = y(record.preWeight);
+          const limitY = y(calcLimitWeight(record));
+          const over = calcOverLimit(record) > 0;
+          return `
+            <circle cx="${dotX}" cy="${limitY}" r="4" fill="#d97706" />
+            <circle cx="${dotX}" cy="${preY}" r="5" fill="${over ? "#b42318" : "#0f766e"}" />
+            <text x="${dotX}" y="${height - 16}" text-anchor="middle" font-size="11" fill="#64707d">${formatShortDate(record.date)}</text>
+          `;
+        })
+        .join("")}
+    </svg>
+  `;
+}
+
+function calcLimitWeight(record) {
+  return roundOne(record.dryWeight + getMaxRemoval(record));
+}
+
+function formatShortDate(value) {
+  const parts = value.split("-");
+  return parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : value;
+}
+
+function toNumber(value) {
+  return Number.parseFloat(value);
+}
+
+function roundOne(value) {
+  return Math.round(value * 10) / 10;
+}
+
+function formatKg(value) {
+  return `${roundOne(value).toFixed(1)} kg`;
+}
+
+function formatOptionalKg(value) {
+  return Number.isFinite(value) ? formatKg(value) : "-- kg";
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function formatOptionalNumber(value) {
+  return Number.isFinite(value) ? roundOne(value) : "";
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function today() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function createId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getPreviousPostWeight(record) {
+  const olderRecords = records
+    .filter((candidate) => candidate.id !== record.id && candidate.date < record.date)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return olderRecords.length ? olderRecords[0].postWeight : null;
+}
+
+function getPreviousPostWeightForNewRecord() {
+  if (!records.length) return null;
+  const currentDate = dateInput.value || today();
+  const olderRecords = records
+    .filter((record) => record.date < currentDate)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return olderRecords.length ? olderRecords[0].postWeight : records[0].postWeight;
 }
