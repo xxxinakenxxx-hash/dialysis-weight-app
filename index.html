@@ -4,8 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>透析体重メモ</title>
-    <link rel="stylesheet" href="styles.css?v=2" />
-    <link rel="stylesheet" href="styles.css?v=3" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app">
@@ -17,7 +16,6 @@
         <button id="exportCsv" class="icon-button" type="button" title="CSVを書き出す" aria-label="CSVを書き出す">
           CSV
         </button>
-        <button id="exportCsv" class="icon-button" type="button" title="CSVを書き出す" aria-label="CSVを書き出す">CSV</button>
       </header>
 
       <section class="summary" aria-label="最新の記録">
@@ -33,59 +31,14 @@
           <span>上限オーバー</span>
           <strong id="latestOverLimit">-- kg</strong>
         </div>
-        <div><span>今回の増加量</span><strong id="latestGain">-- kg</strong></div>
-        <div><span>今回の除水量</span><strong id="latestRemoval">-- kg</strong></div>
-        <div><span>上限オーバー</span><strong id="latestOverLimit">-- kg</strong></div>
-      </section>
-
-      <section class="summary hydration-summary" aria-label="飲水の記録">
-        <div><span>本日の飲水量</span><strong id="todayWaterTotal">-- mL</strong></div>
-        <div><span>目標まで残り</span><strong id="todayWaterRemaining">-- mL</strong></div>
-        <div><span>食事メモ件数（本日）</span><strong id="todayMealCount">-- 件</strong></div>
       </section>
 
       <section id="statusMessage" class="status" aria-live="polite">
         記録すると、次回からドライウェイトを自動で入れます。
-      <section class="quick-help" aria-label="使い方ガイド">
-        <h2>わかりやすい使い方（これだけ）</h2>
-        <ol id="actionSteps">
-          <li>「+100mL / +200mL」を押して、飲んだ分だけ記録します。</li>
-          <li>「目標まで残り」を見ます。0mLなら今日はここで終了です。</li>
-          <li>食事したら「食事メモを保存」を押します。</li>
-        </ol>
       </section>
 
       <section class="notice" aria-label="注意">
         ドライウェイトは、病院や主治医から指示された値を入力してください。このアプリは自分で記録を見返すためのもので、治療判断を行うものではありません。
-      <section id="statusMessage" class="status" aria-live="polite">記録すると、次回からドライウェイトを自動で入れます。</section>
-
-      <section class="notice" aria-label="注意">ドライウェイトは、病院や主治医から指示された値を入力してください。このアプリは自分で記録を見返すためのもので、治療判断を行うものではありません。</section>
-
-      <section class="panel management" aria-label="食事と飲水の管理">
-        <div class="section-head">
-          <h2>食事と飲水の管理</h2>
-          <label class="inline-field"><span>1日の飲水目標 mL</span><input id="waterGoal" type="number" min="100" step="50" value="1000" /></label>
-        </div>
-        <div class="management-grid">
-          <form id="waterForm" class="mini-form" autocomplete="off">
-            <h3>飲水を追加</h3>
-            <div class="water-quick-buttons">
-              <button type="button" class="secondary" data-water-quick="100">+100mL</button>
-              <button type="button" class="secondary" data-water-quick="200">+200mL</button>
-              <button type="button" class="secondary" data-water-quick="300">+300mL</button>
-            </div>
-            <label><span>飲水量 mL</span><input id="waterAmount" type="number" min="1" step="10" required /></label>
-            <label><span>メモ</span><input id="waterNote" type="text" placeholder="例: お茶 / スープ" /></label>
-            <button class="primary" type="submit">飲水を保存</button>
-          </form>
-          <form id="mealForm" class="mini-form" autocomplete="off">
-            <h3>食事メモを追加</h3>
-            <label><span>塩分</span><select id="mealSalt" required><option value="少なめ">少なめ</option><option value="普通" selected>普通</option><option value="多め">多め</option></select></label>
-            <label><span>水分の多い食品</span><select id="mealWaterFood" required><option value="少">少</option><option value="中" selected>中</option><option value="多">多</option></select></label>
-            <label><span>メモ</span><input id="mealNote" type="text" placeholder="例: 外食 / 麺類" /></label>
-            <button class="primary" type="submit">食事メモを保存</button>
-          </form>
-        </div>
       </section>
 
       <section class="plan panel" aria-label="次回までの目安">
@@ -95,7 +48,6 @@
             <span>次回透析日</span>
             <input id="nextDate" type="date" />
           </label>
-          <label class="inline-field"><span>次回透析日</span><input id="nextDate" type="date" /></label>
         </div>
         <div class="plan-grid">
           <div>
@@ -110,9 +62,6 @@
             <span>1日あたり</span>
             <strong id="planPerDay">-- kg</strong>
           </div>
-          <div><span>次回の上限体重</span><strong id="planLimit">-- kg</strong></div>
-          <div><span>増やせる残り</span><strong id="planAllowance">-- kg</strong></div>
-          <div><span>1日あたり</span><strong id="planPerDay">-- kg</strong></div>
         </div>
       </section>
 
@@ -135,9 +84,6 @@
             <input id="maxRemoval" name="maxRemoval" type="number" inputmode="decimal" step="0.1" min="0" value="3.3" required />
           </label>
 
-          <label><span>透析日</span><input id="date" name="date" type="date" required /></label>
-          <label><span>ドライウェイト kg</span><input id="dryWeight" name="dryWeight" type="number" inputmode="decimal" step="0.1" min="0" required /></label>
-          <label><span>除水上限 kg</span><input id="maxRemoval" name="maxRemoval" type="number" inputmode="decimal" step="0.1" min="0" value="3.3" required /></label>
           <div class="grid-2">
             <label>
               <span>透析前の体重 kg</span>
@@ -147,8 +93,6 @@
               <span>透析後の体重 kg</span>
               <input id="postWeight" name="postWeight" type="number" inputmode="decimal" step="0.1" min="0" required />
             </label>
-            <label><span>透析前の体重 kg</span><input id="preWeight" name="preWeight" type="number" inputmode="decimal" step="0.1" min="0" required /></label>
-            <label><span>透析後の体重 kg</span><input id="postWeight" name="postWeight" type="number" inputmode="decimal" step="0.1" min="0" required /></label>
           </div>
 
           <label>
@@ -165,10 +109,6 @@
               <span>上限オーバー</span>
               <strong id="previewOverLimit">-- kg</strong>
             </div>
-          <label><span>メモ</span><textarea id="note" name="note" rows="3" placeholder="例: 外食、飲水量が多め、体調など"></textarea></label>
-          <div class="calculation">
-            <div><span>前回後からの増加</span><strong id="previewGain">-- kg</strong></div>
-            <div><span>上限オーバー</span><strong id="previewOverLimit">-- kg</strong></div>
           </div>
 
           <button class="primary" type="submit">保存</button>
@@ -179,7 +119,6 @@
             <h2>これまでの記録</h2>
             <button id="clearAll" class="secondary" type="button">全削除</button>
           </div>
-          <div class="section-head"><h2>これまでの記録</h2><button id="clearAll" class="secondary" type="button">全削除</button></div>
           <div id="emptyState" class="empty">まだ記録がありません。</div>
           <div class="table-wrap">
             <table>
@@ -194,7 +133,6 @@
                   <th></th>
                 </tr>
               </thead>
-              <thead><tr><th>日付</th><th>DW</th><th>前</th><th>後</th><th>増加</th><th>上限超過</th><th></th></tr></thead>
               <tbody id="recordsBody"></tbody>
             </table>
           </div>
@@ -205,7 +143,6 @@
               <span><i class="legend-pre"></i>透析前</span>
               <span><i class="legend-limit"></i>上限体重</span>
             </div>
-            <div class="legend"><span><i class="legend-pre"></i>透析前</span><span><i class="legend-limit"></i>上限体重</span></div>
           </div>
         </section>
       </section>
