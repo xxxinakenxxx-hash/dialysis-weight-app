@@ -1,7 +1,7 @@
 const storageKey = "dialysisWeightRecords";
+const draftKey = "dialysisWeightDraft";
 const maxRemovalKey = "dialysisMaxRemoval";
 const nextDateKey = "dialysisNextDate";
-const gainCheckKg = 3.0;
 
 const form = document.querySelector("#recordForm");
 const dateInput = document.querySelector("#date");
@@ -25,17 +25,20 @@ const chart = document.querySelector("#chart");
 const clearAllButton = document.querySelector("#clearAll");
 const exportCsvButton = document.querySelector("#exportCsv");
 const statusMessage = document.querySelector("#statusMessage");
+const draftStatus = document.querySelector("#draftStatus");
 
 let records = loadRecords();
 
-dateInput.value = today();
-maxRemovalInput.value = localStorage.getItem(maxRemovalKey) || "3.3";
-nextDateInput.value = localStorage.getItem(nextDateKey) || "";
-fillLastDryWeight();
+setInitialFormValues();
 render();
 updatePreview();
+updateDraftStatus();
 
-form.addEventListener("input", updatePreview);
+form.addEventListener("input", () => {
+  updatePreview();
+  saveDraft();
+});
+
 nextDateInput.addEventListener("input", () => {
   localStorage.setItem(nextDateKey, nextDateInput.value);
   renderPlan();
@@ -44,28 +47,18 @@ nextDateInput.addEventListener("input", () => {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const record = {
-    id: createId(),
-    date: dateInput.value,
-    dryWeight: toNumber(dryWeightInput.value),
-    maxRemoval: toNumber(maxRemovalInput.value),
-    preWeight: toNumber(preWeightInput.value),
-    postWeight: toNumber(postWeightInput.value),
-    note: noteInput.value.trim(),
-  };
-
+  const record = formRecord();
   if (!isValidRecord(record)) {
-    alert("体重を正しく入力してください。");
+    alert("透析後の体重まで入力してから保存してください。透析前だけの状態は下書きとして自動保存されています。");
+    saveDraft();
     return;
   }
 
   localStorage.setItem(maxRemovalKey, record.maxRemoval.toFixed(1));
   records = [record, ...records].sort((a, b) => b.date.localeCompare(a.date));
   saveRecords();
-  form.reset();
-  dateInput.value = today();
-  maxRemovalInput.value = localStorage.getItem(maxRemovalKey) || "3.3";
-  fillLastDryWeight();
+  clearDraft();
+  resetFormForNextEntry();
   render();
   updatePreview();
 });
@@ -118,6 +111,99 @@ exportCsvButton.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
+function setInitialFormValues() {
+  dateInput.value = today();
+  maxRemovalInput.value = localStorage.getItem(maxRemovalKey) || "3.3";
+  nextDateInput.value = localStorage.getItem(nextDateKey) || "";
+  fillLastDryWeight();
+  restoreDraft();
+}
+
+function resetFormForNextEntry() {
+  form.reset();
+  dateInput.value = today();
+  maxRemovalInput.value = localStorage.getItem(maxRemovalKey) || "3.3";
+  fillLastDryWeight();
+  updateDraftStatus();
+}
+
+function formRecord() {
+  return {
+    id: createId(),
+    date: dateInput.value,
+    dryWeight: toNumber(dryWeightInput.value),
+    maxRemoval: toNumber(maxRemovalInput.value),
+    preWeight: toNumber(preWeightInput.value),
+    postWeight: toNumber(postWeightInput.value),
+    note: noteInput.value.trim(),
+  };
+}
+
+function draftValues() {
+  return {
+    date: dateInput.value,
+    dryWeight: dryWeightInput.value,
+    maxRemoval: maxRemovalInput.value,
+    preWeight: preWeightInput.value,
+    postWeight: postWeightInput.value,
+    note: noteInput.value,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function saveDraft() {
+  const draft = draftValues();
+  const hasInput = [draft.dryWeight, draft.maxRemoval, draft.preWeight, draft.postWeight, draft.note].some((value) => String(value).trim());
+  if (!hasInput) {
+    clearDraft();
+    return;
+  }
+
+  localStorage.setItem(draftKey, JSON.stringify(draft));
+  updateDraftStatus();
+}
+
+function restoreDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
+    if (!draft) return;
+
+    dateInput.value = draft.date || today();
+    dryWeightInput.value = draft.dryWeight || dryWeightInput.value;
+    maxRemovalInput.value = draft.maxRemoval || maxRemovalInput.value;
+    preWeightInput.value = draft.preWeight || "";
+    postWeightInput.value = draft.postWeight || "";
+    noteInput.value = draft.note || "";
+  } catch {
+    localStorage.removeItem(draftKey);
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(draftKey);
+  updateDraftStatus();
+}
+
+function updateDraftStatus() {
+  const draft = loadDraft();
+  if (!draft) {
+    draftStatus.textContent = "下書きなし";
+    draftStatus.classList.remove("is-saved");
+    return;
+  }
+
+  draftStatus.textContent = "下書き保存済み";
+  draftStatus.classList.add("is-saved");
+}
+
+function loadDraft() {
+  try {
+    return JSON.parse(localStorage.getItem(draftKey) || "null");
+  } catch {
+    return null;
+  }
+}
+
 function render() {
   emptyState.classList.toggle("is-visible", records.length === 0);
   recordsBody.innerHTML = records.map(renderRow).join("");
@@ -168,15 +254,16 @@ function updateStatus(latest) {
   statusMessage.classList.remove("is-check");
 
   if (!latest) {
-    statusMessage.textContent = "記録すると、次回からドライウェイトを自動で入れます。";
+    statusMessage.textContent = "記録すると、次回からドライウェイトを自動で入れます。入力途中の内容は下書き保存されます。";
     return;
   }
 
   const gain = calcGain(latest);
   if (!Number.isFinite(gain)) {
-    statusMessage.textContent = `前回のドライウェイト ${formatKg(latest.dryWeight)} を次回入力に引き継ぎます。`;
+    statusMessage.textContent = `前回のドライウェイト ${formatKg(latest.dryWeight)} を次回入力に引き継ぎます。入力途中の内容は下書き保存されます。`;
     return;
   }
+
   const overLimit = calcOverLimit(latest);
   if (overLimit > 0) {
     statusMessage.classList.add("is-check");

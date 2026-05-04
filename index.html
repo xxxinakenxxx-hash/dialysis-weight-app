@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>透析体重メモ</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=3" />
   </head>
   <body>
     <main class="app">
@@ -13,24 +13,13 @@
           <p class="eyebrow">自分用の記録</p>
           <h1>透析体重メモ</h1>
         </div>
-        <button id="exportCsv" class="icon-button" type="button" title="CSVを書き出す" aria-label="CSVを書き出す">
-          CSV
-        </button>
+        <button id="exportCsv" class="icon-button" type="button" title="CSVを書き出す" aria-label="CSVを書き出す">CSV</button>
       </header>
 
       <section class="summary" aria-label="最新の記録">
-        <div>
-          <span>今回の増加量</span>
-          <strong id="latestGain">-- kg</strong>
-        </div>
-        <div>
-          <span>今回の除水量</span>
-          <strong id="latestRemoval">-- kg</strong>
-        </div>
-        <div>
-          <span>上限オーバー</span>
-          <strong id="latestOverLimit">-- kg</strong>
-        </div>
+        <div><span>今回の増加量</span><strong id="latestGain">-- kg</strong></div>
+        <div><span>今回の除水量</span><strong id="latestRemoval">-- kg</strong></div>
+        <div><span>上限オーバー</span><strong id="latestOverLimit">-- kg</strong></div>
       </section>
 
       <section id="statusMessage" class="status" aria-live="polite">
@@ -50,24 +39,18 @@
           </label>
         </div>
         <div class="plan-grid">
-          <div>
-            <span>次回の上限体重</span>
-            <strong id="planLimit">-- kg</strong>
-          </div>
-          <div>
-            <span>増やせる残り</span>
-            <strong id="planAllowance">-- kg</strong>
-          </div>
-          <div>
-            <span>1日あたり</span>
-            <strong id="planPerDay">-- kg</strong>
-          </div>
+          <div><span>次回の上限体重</span><strong id="planLimit">-- kg</strong></div>
+          <div><span>増やせる残り</span><strong id="planAllowance">-- kg</strong></div>
+          <div><span>1日あたり</span><strong id="planPerDay">-- kg</strong></div>
         </div>
       </section>
 
       <section class="layout">
         <form id="recordForm" class="panel" autocomplete="off">
-          <h2>今日の記録</h2>
+          <div class="section-head">
+            <h2>今日の記録</h2>
+            <span id="draftStatus" class="draft-status">下書きなし</span>
+          </div>
 
           <label>
             <span>透析日</span>
@@ -101,14 +84,8 @@
           </label>
 
           <div class="calculation" aria-live="polite">
-            <div>
-              <span>前回後からの増加</span>
-              <strong id="previewGain">-- kg</strong>
-            </div>
-            <div>
-              <span>上限オーバー</span>
-              <strong id="previewOverLimit">-- kg</strong>
-            </div>
+            <div><span>前回後からの増加</span><strong id="previewGain">-- kg</strong></div>
+            <div><span>上限オーバー</span><strong id="previewOverLimit">-- kg</strong></div>
           </div>
 
           <button class="primary" type="submit">保存</button>
@@ -124,13 +101,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>日付</th>
-                  <th>DW</th>
-                  <th>前</th>
-                  <th>後</th>
-                  <th>増加</th>
-                  <th>上限超過</th>
-                  <th></th>
+                  <th>日付</th><th>DW</th><th>前</th><th>後</th><th>増加</th><th>上限超過</th><th></th>
                 </tr>
               </thead>
               <tbody id="recordsBody"></tbody>
@@ -148,6 +119,6 @@
       </section>
     </main>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=3"></script>
   </body>
 </html>
