@@ -2,6 +2,7 @@ const storageKey = "dialysisWeightRecords";
 const draftKey = "dialysisWeightDraft";
 const maxRemovalKey = "dialysisMaxRemoval";
 const nextDateKey = "dialysisNextDate";
+const fluidStorageKey = "dialysisFluidRecords";
 
 const form = document.querySelector("#recordForm");
 const dateInput = document.querySelector("#date");
@@ -27,12 +28,32 @@ const exportCsvButton = document.querySelector("#exportCsv");
 const statusMessage = document.querySelector("#statusMessage");
 const draftStatus = document.querySelector("#draftStatus");
 
+const tabButtons = document.querySelectorAll(".tab-button");
+const pages = document.querySelectorAll(".page");
+const fluidForm = document.querySelector("#fluidForm");
+const fluidDateInput = document.querySelector("#fluidDate");
+const fluidAmountInput = document.querySelector("#fluidAmount");
+const fluidNoteInput = document.querySelector("#fluidNote");
+const todayFluidTotal = document.querySelector("#todayFluidTotal");
+const fluidAverage = document.querySelector("#fluidAverage");
+const latestFluid = document.querySelector("#latestFluid");
+const fluidRecordsBody = document.querySelector("#fluidRecordsBody");
+const fluidEmptyState = document.querySelector("#fluidEmptyState");
+const clearFluidAllButton = document.querySelector("#clearFluidAll");
+
 let records = loadRecords();
+let fluidRecords = loadFluidRecords();
 
 setInitialFormValues();
+fluidDateInput.value = today();
 render();
+renderFluid();
 updatePreview();
 updateDraftStatus();
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => showPage(button.dataset.page));
+});
 
 form.addEventListener("input", () => {
   updatePreview();
@@ -63,6 +84,28 @@ form.addEventListener("submit", (event) => {
   updatePreview();
 });
 
+fluidForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const record = {
+    id: createId(),
+    date: fluidDateInput.value,
+    amount: toNumber(fluidAmountInput.value),
+    note: fluidNoteInput.value.trim(),
+  };
+
+  if (!record.date || !Number.isFinite(record.amount) || record.amount <= 0) {
+    alert("飲水量をmlで入力してください。");
+    return;
+  }
+
+  fluidRecords = [record, ...fluidRecords].sort((a, b) => b.date.localeCompare(a.date));
+  saveFluidRecords();
+  fluidForm.reset();
+  fluidDateInput.value = today();
+  renderFluid();
+});
+
 recordsBody.addEventListener("click", (event) => {
   const button = event.target.closest("[data-delete-id]");
   if (!button) return;
@@ -71,6 +114,15 @@ recordsBody.addEventListener("click", (event) => {
   saveRecords();
   render();
   fillLastDryWeight();
+});
+
+fluidRecordsBody.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-fluid-delete-id]");
+  if (!button) return;
+
+  fluidRecords = fluidRecords.filter((record) => record.id !== button.dataset.fluidDeleteId);
+  saveFluidRecords();
+  renderFluid();
 });
 
 clearAllButton.addEventListener("click", () => {
@@ -84,32 +136,55 @@ clearAllButton.addEventListener("click", () => {
   updatePreview();
 });
 
+clearFluidAllButton.addEventListener("click", () => {
+  if (!fluidRecords.length) return;
+  if (!confirm("すべての飲水記録を削除しますか？")) return;
+
+  fluidRecords = [];
+  saveFluidRecords();
+  renderFluid();
+});
+
 exportCsvButton.addEventListener("click", () => {
-  if (!records.length) {
+  if (!records.length && !fluidRecords.length) {
     alert("書き出す記録がありません。");
     return;
   }
 
-  const header = ["日付", "ドライウェイトkg", "除水上限kg", "透析前kg", "透析後kg", "体重増加量kg", "上限オーバーkg", "メモ"];
-  const rows = records.map((record) => [
-    record.date,
-    record.dryWeight,
-    getMaxRemoval(record),
-    record.preWeight,
-    record.postWeight,
-    formatOptionalNumber(calcGain(record)),
-    calcOverLimit(record),
-    record.note,
-  ]);
-  const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const weightRows = [
+    ["体重記録"],
+    ["日付", "ドライウェイトkg", "除水上限kg", "透析前kg", "透析後kg", "体重増加量kg", "上限オーバーkg", "メモ"],
+    ...records.map((record) => [
+      record.date,
+      record.dryWeight,
+      getMaxRemoval(record),
+      record.preWeight,
+      record.postWeight,
+      formatOptionalNumber(calcGain(record)),
+      calcOverLimit(record),
+      record.note,
+    ]),
+  ];
+  const fluidRows = [
+    [],
+    ["飲水記録"],
+    ["日付", "量ml", "メモ"],
+    ...fluidRecords.map((record) => [record.date, record.amount, record.note]),
+  ];
+  const csv = [...weightRows, ...fluidRows].map((row) => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `dialysis-weight-${today()}.csv`;
+  link.download = `dialysis-log-${today()}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 });
+
+function showPage(pageName) {
+  tabButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.page === pageName));
+  pages.forEach((page) => page.classList.toggle("is-active", page.id === `${pageName}Page`));
+}
 
 function setInitialFormValues() {
   dateInput.value = today();
@@ -233,6 +308,33 @@ function renderRow(record) {
   `;
 }
 
+function renderFluid() {
+  fluidEmptyState.classList.toggle("is-visible", fluidRecords.length === 0);
+  fluidRecordsBody.innerHTML = fluidRecords
+    .map((record) => `
+      <tr>
+        <td>${escapeHtml(record.date)}</td>
+        <td>${formatMl(record.amount)}</td>
+        <td>${escapeHtml(record.note || "")}</td>
+        <td><button class="delete" type="button" data-fluid-delete-id="${record.id}">削除</button></td>
+      </tr>
+    `)
+    .join("");
+
+  const todayTotal = fluidRecords
+    .filter((record) => record.date === today())
+    .reduce((total, record) => total + record.amount, 0);
+  todayFluidTotal.textContent = formatMl(todayTotal);
+
+  const sevenDaysAgo = new Date(`${today()}T00:00:00`);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  const recentTotal = fluidRecords
+    .filter((record) => new Date(`${record.date}T00:00:00`) >= sevenDaysAgo)
+    .reduce((total, record) => total + record.amount, 0);
+  fluidAverage.textContent = formatMl(Math.round(recentTotal / 7));
+  latestFluid.textContent = fluidRecords[0] ? formatMl(fluidRecords[0].amount) : "-- ml";
+}
+
 function updatePreview() {
   const record = {
     dryWeight: toNumber(dryWeightInput.value),
@@ -290,6 +392,19 @@ function loadRecords() {
 
 function saveRecords() {
   localStorage.setItem(storageKey, JSON.stringify(records));
+}
+
+function loadFluidRecords() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(fluidStorageKey) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFluidRecords() {
+  localStorage.setItem(fluidStorageKey, JSON.stringify(fluidRecords));
 }
 
 function isValidRecord(record) {
@@ -415,6 +530,10 @@ function roundOne(value) {
 
 function formatKg(value) {
   return `${roundOne(value).toFixed(1)} kg`;
+}
+
+function formatMl(value) {
+  return `${Math.round(value)} ml`;
 }
 
 function formatOptionalKg(value) {

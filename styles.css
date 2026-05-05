@@ -45,6 +45,37 @@ textarea {
   margin-bottom: 18px;
 }
 
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tab-button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.tab-button.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.page {
+  display: none;
+}
+
+.page.is-active {
+  display: block;
+}
+
 .eyebrow {
   margin: 0 0 3px;
   color: var(--accent);
@@ -291,6 +322,10 @@ table {
   width: 100%;
   border-collapse: collapse;
   min-width: 720px;
+}
+
+.fluid-table {
+  min-width: 520px;
 }
 
 th,
