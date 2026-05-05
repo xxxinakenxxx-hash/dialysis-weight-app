@@ -3,6 +3,7 @@ const draftKey = "dialysisWeightDraft";
 const maxRemovalKey = "dialysisMaxRemoval";
 const nextDateKey = "dialysisNextDate";
 const fluidStorageKey = "dialysisFluidRecords";
+const fluidResetAtKey = "dialysisFluidResetAt";
 
 const form = document.querySelector("#recordForm");
 const dateInput = document.querySelector("#date");
@@ -78,6 +79,7 @@ form.addEventListener("submit", (event) => {
   localStorage.setItem(maxRemovalKey, record.maxRemoval.toFixed(1));
   records = [record, ...records].sort((a, b) => b.date.localeCompare(a.date));
   saveRecords();
+  resetFluidCounter();
   clearDraft();
   resetFormForNextEntry();
   render();
@@ -92,6 +94,7 @@ fluidForm.addEventListener("submit", (event) => {
     date: fluidDateInput.value,
     amount: toNumber(fluidAmountInput.value),
     note: fluidNoteInput.value.trim(),
+    createdAt: new Date().toISOString(),
   };
 
   if (!record.date || !Number.isFinite(record.amount) || record.amount <= 0) {
@@ -321,10 +324,11 @@ function renderFluid() {
     `)
     .join("");
 
-  const todayTotal = fluidRecords
-    .filter((record) => record.date === today())
+  const resetAt = getFluidResetAt();
+  const currentTotal = fluidRecords
+    .filter((record) => new Date(record.createdAt || `${record.date}T00:00:00`).getTime() >= resetAt)
     .reduce((total, record) => total + record.amount, 0);
-  todayFluidTotal.textContent = formatMl(todayTotal);
+  todayFluidTotal.textContent = formatMl(currentTotal);
 
   const sevenDaysAgo = new Date(`${today()}T00:00:00`);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -333,6 +337,14 @@ function renderFluid() {
     .reduce((total, record) => total + record.amount, 0);
   fluidAverage.textContent = formatMl(Math.round(recentTotal / 7));
   latestFluid.textContent = fluidRecords[0] ? formatMl(fluidRecords[0].amount) : "-- ml";
+}
+
+function resetFluidCounter() {
+  localStorage.setItem(fluidResetAtKey, String(Date.now()));
+}
+
+function getFluidResetAt() {
+  return Number(localStorage.getItem(fluidResetAtKey) || 0);
 }
 
 function updatePreview() {
