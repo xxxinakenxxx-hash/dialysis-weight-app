@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>透析体重メモ</title>
     <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="quick-fluid.css?v=1" />
   </head>
   <body>
     <main class="app">
@@ -30,6 +31,31 @@
 
         <section id="statusMessage" class="status" aria-live="polite">
           記録すると、次回からドライウェイトを自動で入れます。
+        </section>
+
+        <section class="quick-fluid panel" aria-label="飲水クイック記録">
+          <div class="section-head">
+            <div>
+              <h2>飲水クイック記録</h2>
+              <p class="subtext">飲んだらここで1タップ記録できます。</p>
+            </div>
+            <div class="quick-total">
+              <span>透析後から</span>
+              <strong id="quickFluidTotal">0 ml</strong>
+            </div>
+          </div>
+          <div class="quick-buttons" aria-label="よく使う飲水量">
+            <button type="button" data-fluid-quick="100">100 ml</button>
+            <button type="button" data-fluid-quick="150">150 ml</button>
+            <button type="button" data-fluid-quick="200">200 ml</button>
+            <button type="button" data-fluid-quick="250">250 ml</button>
+            <button type="button" data-fluid-quick="300">300 ml</button>
+          </div>
+          <div class="quick-custom">
+            <label><span>その他 ml</span><input id="quickFluidAmount" type="number" inputmode="numeric" step="10" min="0" /></label>
+            <button id="quickFluidSave" class="secondary" type="button">追加</button>
+          </div>
+          <div id="quickFluidMessage" class="quick-message" aria-live="polite"></div>
         </section>
 
         <section class="notice" aria-label="注意">
@@ -137,5 +163,6 @@
     </main>
 
     <script src="app.js?v=4"></script>
+    <script src="quick-fluid.js?v=1"></script>
   </body>
 </html>
