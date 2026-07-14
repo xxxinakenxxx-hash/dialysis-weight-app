@@ -1,0 +1,27 @@
+.sheet-sync-panel {
+  margin: 0 0 20px;
+}
+
+.sheet-sync-panel label {
+  display: grid;
+  gap: 6px;
+}
+
+.sheet-sync-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sheet-sync-status {
+  color: #5a6b7a;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .sheet-sync-panel {
+    margin-bottom: 14px;
+  }
+}
