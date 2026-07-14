@@ -36,3 +36,18 @@
     return `${year}-${month}-${day}`;
   }
 })();
+
+(function () {
+  if (!document.querySelector('link[href^="sheet-sync.css"]')) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "sheet-sync.css?v=1";
+    document.head.appendChild(link);
+  }
+
+  if (!document.querySelector('script[src^="sheet-sync.js"]')) {
+    const script = document.createElement("script");
+    script.src = "sheet-sync.js?v=1";
+    document.body.appendChild(script);
+  }
+})();
